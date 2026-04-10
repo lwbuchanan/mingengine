@@ -1,9 +1,7 @@
 CXX=g++
-LDFLAGS = -lwayland-client -lX11
+LDFLAGS = -lX11
 INCLUDES = -I./src -I./src/gen
-FLAGS = -Wall -Wextra -Wswitch-enum -pedantic
-RELFLAGS = -O3
-DEBFLAGS = -ggdb
+FLAGS = -Wall -Wextra -Wswitch-enum -pedantic -O3 -ggdb
 
 SRCDIR=src
 ODIR=o
@@ -14,12 +12,6 @@ TARGET=$(OUTPUTDIR)/game
 HEADERS = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.h)|(.+\.hpp)")
 CXXSRC = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.cpp)")
 OBJS = $(patsubst $(SRCDIR)/%.c, $(ODIR)/%.o, $(CSRC)) $(patsubst $(SRCDIR)/%.cpp, $(ODIR)/%.o, $(CXXSRC))
-
-ifeq ($(BUILD), release)
-	FLAGS += $(RELFLAGS)
-else
-	FLAGS += $(DEBFLAGS)
-endif
 
 # Main build task
 default: all
@@ -41,6 +33,10 @@ all: $(TARGET)
 .PHONY: run
 run: all
 	@./$(TARGET)
+
+.PHONY: debug
+debug: all
+	@gdb $(TARGET)
 
 .PHONY: clean
 clean:
