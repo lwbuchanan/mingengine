@@ -1,0 +1,79 @@
+CC=gcc
+CXX=g++
+LDFLAGS = -lwayland-client -lX11
+INCLUDES = -I./src -I./src/gen
+FLAGS = -O3 -Wall -Wextra -Wswitch-enum -pedantic
+
+SRCDIR=src
+ODIR=o
+
+OUTPUTDIR=out
+TARGET=$(OUTPUTDIR)/game
+
+GENSRCDIR=$(SRCDIR)/gen
+HEADERS = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.h)|(.+\.hpp)")
+HEADERS += $(GENSRCDIR)/wl_protocol.h
+CSRC = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.c)")
+CSRC += $(GENSRCDIR)/wl_protocol.c
+CXXSRC = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.cpp)")
+OBJS = $(patsubst $(SRCDIR)/%.c, $(ODIR)/%.o, $(CSRC)) $(patsubst $(SRCDIR)/%.cpp, $(ODIR)/%.o, $(CXXSRC))
+
+WAYLANDXML=/usr/share/wayland/wayland.xml
+
+# Main build task
+default: all
+
+# Code generation
+$(GENSRCDIR)/wl_protocol.h:
+	@echo "Generating $@"
+	@mkdir -p $(@D)
+	@wayland-scanner client-header < $(WAYLANDXML) > $@
+$(GENSRCDIR)/wl_protocol.c:
+	@echo "Generating $@"
+	@mkdir -p $(@D)
+	@wayland-scanner private-code < $(WAYLANDXML) > $@
+
+# Compile objects
+$(ODIR)/%.o: $(SRCDIR)/%.cpp $(HEADERS)
+	@echo "Compiling $@"
+	@mkdir -p $(@D)
+	@$(CXX) -c -o $@ $< $(INCLUDES) $(FLAGS)
+$(ODIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
+	@echo "Compiling $@"
+	@mkdir -p $(@D)
+	@$(CC) -c -o $@ $< $(INCLUDES) $(FLAGS)
+
+# Link target
+$(TARGET): $(OBJS)
+	@echo $(OBJS)
+	@echo "Linking $@"
+	@mkdir -p $(@D)
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+# Phony rules
+.PHONY: all
+all: generate $(TARGET)
+	@echo "Build finished"
+
+.PHONY: generate
+generate: $(GENSRCDIR)/wl_protocol.h $(GENSRCDIR)/wl_protocol.c $(WAYLANDXML)
+
+.PHONY: run
+run: all
+	@./$(TARGET)
+
+.PHONY: clean
+clean:
+	@rm -rf $(ODIR) $(GENSRCDIR) $(OUTPUTDIR)
+	@echo "Cleaning up"
+
+.PHONY: list
+list:
+	@echo "C Sources: $(CSRC)"
+	@echo "C++ Sources: $(CXXSRC)"
+	@echo "Headers: $(HEADERS)"
+	@echo "Objects: $(OBJS)"
+
+.PHONY: clangd
+clangd:
+	@bear -- make all -B
