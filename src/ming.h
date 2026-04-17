@@ -2,6 +2,7 @@
 #define MING_H
 
 #include "defs.h"
+#include "vec.h"
 
 struct Ming {
   uint16 fps;

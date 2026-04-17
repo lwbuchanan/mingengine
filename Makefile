@@ -6,8 +6,7 @@ FLAGS = -Wall -Wextra -Wswitch-enum -pedantic -O3 -ggdb
 SRCDIR=src
 ODIR=o
 
-OUTPUTDIR=.
-TARGET=$(OUTPUTDIR)/game
+TARGET=game
 
 HEADERS = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.h)|(.+\.hpp)")
 CXXSRC = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.cpp)")
@@ -40,7 +39,7 @@ debug: all
 
 .PHONY: clean
 clean:
-	@rm -rf $(ODIR) $(GENSRCDIR) $(OUTPUTDIR)
+	@rm -rf $(ODIR) $(GENSRCDIR) $(TARGET)
 
 .PHONY: list
 list:

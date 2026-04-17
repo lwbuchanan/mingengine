@@ -26,14 +26,12 @@ struct Transform {
 
 Model load_model(const char *obj_file, v3f *vertex_buf, usize max_vertices,
                  v3i *face_buf, usize max_faces);
-Canvas init_canvas(rgba *pixels, usize width, usize height);
+
 void set_pixel(Canvas c, usize x, usize y, rgba color);
 void fill_bg(Canvas c, rgba color);
 void draw_line(Canvas c, int x0, int y0, int x1, int y1, rgba color);
-void draw_traingle_wires(Canvas c, int x0, int y0, int x1, int y1, int x2,
-                         int y2, rgba color);
-void draw_quad_wires(Canvas c, int x0, int y0, int x1, int y1, int x2, int y2,
-                     int x3, int y3, rgba color);
+void draw_triangle(Canvas c, v2i p0, v2i p1, v2i p2, rgba color);
+
 void render_model(Canvas c, Model m, Transform t);
 
 #endif
