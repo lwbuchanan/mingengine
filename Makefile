@@ -6,7 +6,7 @@ FLAGS = -Wall -Wextra -Wswitch-enum -pedantic -O3 -ggdb
 SRCDIR=src
 ODIR=o
 
-OUTPUTDIR=out
+OUTPUTDIR=.
 TARGET=$(OUTPUTDIR)/game
 
 HEADERS = $(shell find $(SRCDIR) -regextype egrep -regex "$(SRCDIR)/(.+\.h)|(.+\.hpp)")
