@@ -1,13 +1,14 @@
 #include <cassert>
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <utility>
 
 #include "defs.h"
 #include "renderer.h"
 #include "vec.h"
-#include "ming_print.h"
+
+internal const float PI = 3.14159;
+internal const float RAD_PER_DEGREE = PI/180;
 
 void set_pixel(Canvas c, usize x, usize y, rgba color) {
   // assert(x < c.width && y < c.height);
@@ -98,7 +99,7 @@ void draw_triangle_scanline(Canvas c, int x0, int y0, int x1, int y1, int x2,
   }
 }
 
-float signed_triangle_area(v2i p0, v2i p1, v2i p2) {
+inline float signed_triangle_area(v2i p0, v2i p1, v2i p2) {
   return 0.5 * ((p1.y() - p0.y()) * (p1.x() + p0.x()) +
                 (p2.y() - p1.y()) * (p2.x() + p1.x()) +
                 (p0.y() - p2.y()) * (p0.x() + p2.x()));
@@ -110,30 +111,35 @@ void draw_triangle_area(Canvas c, v2i p0, v2i p1, v2i p2, rgba color) {
   int ymin = std::min(std::min(p0.y(), p1.y()), p2.y());
   int ymax = std::max(std::max(p0.y(), p1.y()), p2.y());
   int triangle_area = signed_triangle_area(p0, p1, p2);
-
-  // #pragma omp parallel for
+#pragma omp parallel for schedule(guided) collapse(2)
   for (int x = xmin; x <= xmax; x++) {
     for (int y = ymin; y <= ymax; y++) {
       float alpha = signed_triangle_area({x, y}, p1, p2) / triangle_area;
       float beta = signed_triangle_area({x, y}, p2, p0) / triangle_area;
       float gamma = signed_triangle_area({x, y}, p0, p1) / triangle_area;
       if (alpha >= 0 && beta >= 0 && gamma >= 0) {
-        set_pixel(c, x, y, color);
+          set_pixel(c, x, y, color);
       }
     }
   }
 }
 
 void draw_triangle(Canvas c, v2i p0, v2i p1, v2i p2, rgba color) {
-  // draw_triangle_area(c, p0, p1, p2, color);
+  int triangle_area = signed_triangle_area(p0, p1, p2);
+  if (triangle_area < 1) return;
   draw_triangle_scanline(c, p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(),
                          color);
+  // draw_triangle_area(c, p0, p1, p2, color);
 }
 
 v2i to_screen(Canvas c, v3f v) {
-  float screen_height = 3.0f;
+  float fov_degrees = 60;
+  float fov = fov_degrees * RAD_PER_DEGREE;
+
+  float screen_height = std::tan(fov/2) * 2;
   int px_per_unit = c.height / screen_height;
-  v2f proj_vertex = v2f{v.x() / v.z(), v.y() / v.z()};
+
+  v2f proj_vertex = {v.x() / v.z(), v.y() / v.z()};
 
   int x = (c.width / 2) + (int)(proj_vertex.x() * px_per_unit);
   int y = (c.height / 2) + (int)(proj_vertex.y() * px_per_unit);

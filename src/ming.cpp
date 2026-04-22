@@ -1,6 +1,4 @@
 #include <cassert>
-#include <cstdlib>
-#include <ctime>
 #include <unistd.h>
 
 #include "defs.h"
@@ -19,6 +17,7 @@ internal const usize MAX_FACES = 6000;
 internal v3f verts[MAX_VERTS];
 internal v3i faces[MAX_FACES];
 
+
 Ming init_ming(void) {
   return Ming{
       FPS,
@@ -32,8 +31,12 @@ void update_ming(void) {
   Canvas c = Canvas{display_pixels, DISPLAY_WIDTH, DISPLAY_HEIGHT};
   fill_bg(c, BLACK);
 
-  const char *path = "resources/obj/diablo.obj";
+  const char *path = "resources/obj/head.obj";
   Model model = load_model(path, verts, MAX_VERTS, faces, MAX_FACES);
-  persistant Transform t = {{0, 0, 1}, {}, 0.70};
+
+  persistant Transform t = {{0, 0, 3}, {}, 0.50};
+  t.rot.y() += (2*DT);
+  // t.pos.z() += (DT);
+
   render_model(c, model, t);
 }

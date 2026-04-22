@@ -1,7 +1,7 @@
 CXX=g++
-LDFLAGS = -lX11
+LDFLAGS = -lX11 -fopenmp
 INCLUDES = -I./src -I./src/gen
-FLAGS = -Wall -Wextra -Wswitch-enum -pedantic -O3 -ggdb
+FLAGS = -Wall -Wextra -Wswitch-enum -pedantic -O3 -ggdb -fopenmp
 
 SRCDIR=src
 ODIR=o

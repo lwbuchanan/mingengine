@@ -27,7 +27,7 @@ int main(void) {
 
   Window w = XCreateSimpleWindow(display, XDefaultRootWindow(display), 0, 0,
                                  1920, 1080, 0, 0, 0);
-  XStoreName(display, w, "Ming Renderer");
+  XStoreName(display, w, "Minga Renderer");
   XWindowAttributes wa = {};
   XGetWindowAttributes(display, w, &wa);
   Atom wm_delete_window = XInternAtom(display, "WM_DELETE_WINDOW", false);
