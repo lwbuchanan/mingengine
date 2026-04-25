@@ -28,4 +28,7 @@ typedef int8_t int8;
 
 typedef size_t usize;
 
+typedef float float32;
+typedef double float64;
+
 #endif

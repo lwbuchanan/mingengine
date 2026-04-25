@@ -130,8 +130,8 @@ template <typename T> Vector<2, T> perpendicular_clockwise(Vector<2, T> v) {
   return Vector<2, T>{v.y(), -v.x()};
 }
 
-typedef Vector<2, float> v2f;
-typedef Vector<3, float> v3f;
+typedef Vector<2, float64> v2f;
+typedef Vector<3, float64> v3f;
 
 typedef Vector<2, int> v2i;
 typedef Vector<3, int> v3i;

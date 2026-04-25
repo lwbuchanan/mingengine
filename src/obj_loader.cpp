@@ -33,23 +33,22 @@ void parse_obj_line(char *line, Model *m) {
 
   case 'f': { // Face
     int n_verts = 0;
-    v3i face_verts = {};
-    while ((token = strtok_r(NULL, " \t", &saveptr)) != NULL) {
+    int v1, v2, v3;
+    while ((token = strtok_r(NULL, " \t", &saveptr))) {
       token2 = strtok_r(token, "/", &saveptr2);
-      face_verts.data[n_verts++] = atoi(token2) - 1;
+      n_verts++;
 
-      // token2 = strtok_r(NULL, "/", &saveptr2);
-      // if (token2 != NULL) {
-      //   da_i32_append(m->face_vnormal_idxs, atoi(token2));
-      //   token2 = strtok_r(NULL, "/", &saveptr2);
-      //   if (token2 != NULL) {
-      //     da_i32_append(m->face_vtexture_idxs, atoi(token2));
-      //   }
-      // }
-
-      assert(n_verts <= 3);
-      if (n_verts >= 3) {
-        m->faces[m->n_faces++] = face_verts;
+      if (n_verts == 1) {
+        v1 = atoi(token2) - 1;
+      } else if (n_verts == 2) {
+        v2 = atoi(token2) - 1;
+      } else if (n_verts == 3) {
+        v3 = atoi(token2) - 1;
+        m->faces[m->n_faces++] = {v1, v2, v3};
+      } else if (n_verts > 3) {
+        v2 = v3;
+        v3 = atoi(token2) - 1;
+        m->faces[m->n_faces++] = {v1, v2, v3};
       }
     }
   } break;

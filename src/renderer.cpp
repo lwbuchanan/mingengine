@@ -1,31 +1,32 @@
+#include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <utility>
 
 #include "defs.h"
+#include "ming_print.h"
 #include "renderer.h"
 #include "vec.h"
 
-internal const float PI = 3.14159;
-internal const float RAD_PER_DEGREE = PI/180;
+internal const float64 PI = 3.14159;
+internal const float64 RAD_PER_DEGREE = PI / 180;
 
-void set_pixel(Canvas c, usize x, usize y, rgba color) {
-  // assert(x < c.width && y < c.height);
-  if (x >= c.width || y >= c.height)
-    return;
-  c.pixels[x + (c.height - y - 1) * c.width] = color;
+void set_pixel(Canvas canvas, usize x, usize y, rgba color) {
+  if (x >= canvas.width || y >= canvas.height) return;
+  canvas.pixels[x + (canvas.height - y - 1) * canvas.width] = color;
 }
 
-void fill_bg(Canvas c, rgba color) {
-  for (usize y = 0; y < c.height; y++) {
-    for (usize x = 0; x < c.width; x++) {
-      set_pixel(c, x, y, color);
+void fill_bg(Canvas canvas, rgba color) {
+  for (usize y = 0; y < canvas.height; y++) {
+    for (usize x = 0; x < canvas.width; x++) {
+      set_pixel(canvas, x, y, color);
     }
   }
 }
 
-void draw_line(Canvas c, int x0, int y0, int x1, int y1, rgba color) {
+void draw_line(Canvas canvas, int x0, int y0, int x1, int y1, rgba color) {
   bool steep = abs(x1 - x0) < abs(y1 - y0);
   if (steep) {
     std::swap(x0, y0);
@@ -41,9 +42,9 @@ void draw_line(Canvas c, int x0, int y0, int x1, int y1, rgba color) {
   int error = 0;
   for (int x = x0; x < x1; x++) {
     if (steep) {
-      set_pixel(c, y, x, color);
+      set_pixel(canvas, y, x, color);
     } else {
-      set_pixel(c, x, y, color);
+      set_pixel(canvas, x, y, color);
     }
     error += 2 * abs(y1 - y0);
     y += (y1 > y0 ? 1 : -1) * (error > x1 - x0);
@@ -51,8 +52,8 @@ void draw_line(Canvas c, int x0, int y0, int x1, int y1, rgba color) {
   }
 }
 
-void draw_triangle_scanline(Canvas c, int x0, int y0, int x1, int y1, int x2,
-                            int y2, rgba color) {
+void draw_triangle_scanline(Canvas canvas, int x0, int y0, int x1, int y1,
+                            int x2, int y2, rgba color) {
   if (y0 > y1) {
     std::swap(y0, y1);
     std::swap(x0, x1);
@@ -72,13 +73,13 @@ void draw_triangle_scanline(Canvas c, int x0, int y0, int x1, int y1, int x2,
     for (int y = y0; y <= y1; y++) {
       int xa = x0 + ((x2 - x0) * (y - y0)) / height;
       int xb = x0 + ((x1 - x0) * (y - y0)) / bottom_height;
-      set_pixel(c, xa, y, color);
-      set_pixel(c, xb, y, color);
+      set_pixel(canvas, xa, y, color);
+      set_pixel(canvas, xb, y, color);
 
       if (xa > xb)
         std::swap(xa, xb);
       for (int x = xa; x < xb; x++) {
-        set_pixel(c, x, y, color);
+        set_pixel(canvas, x, y, color);
       }
     }
   }
@@ -87,63 +88,80 @@ void draw_triangle_scanline(Canvas c, int x0, int y0, int x1, int y1, int x2,
     for (int y = y1; y <= y2; y++) {
       int xa = x0 + ((x2 - x0) * (y - y0)) / height;
       int xb = x1 + ((x2 - x1) * (y - y1)) / top_height;
-      set_pixel(c, xa, y, color);
-      set_pixel(c, xb, y, color);
+      set_pixel(canvas, xa, y, color);
+      set_pixel(canvas, xb, y, color);
 
       if (xa > xb)
         std::swap(xa, xb);
       for (int x = xa; x < xb; x++) {
-        set_pixel(c, x, y, color);
+        set_pixel(canvas, x, y, color);
       }
     }
   }
 }
 
-inline float signed_triangle_area(v2i p0, v2i p1, v2i p2) {
-  return 0.5 * ((p1.y() - p0.y()) * (p1.x() + p0.x()) +
-                (p2.y() - p1.y()) * (p2.x() + p1.x()) +
-                (p0.y() - p2.y()) * (p0.x() + p2.x()));
+inline float64 signed_triangle_area(v2i a, v2i b, v2i c) {
+  return 0.5 * ((b.y() - a.y()) * (b.x() + a.x()) +
+                (c.y() - b.y()) * (c.x() + b.x()) +
+                (a.y() - c.y()) * (a.x() + c.x()));
 }
 
-void draw_triangle_area(Canvas c, v2i p0, v2i p1, v2i p2, rgba color) {
-  int xmin = std::min(std::min(p0.x(), p1.x()), p2.x());
-  int xmax = std::max(std::max(p0.x(), p1.x()), p2.x());
-  int ymin = std::min(std::min(p0.y(), p1.y()), p2.y());
-  int ymax = std::max(std::max(p0.y(), p1.y()), p2.y());
-  int triangle_area = signed_triangle_area(p0, p1, p2);
-#pragma omp parallel for schedule(guided) collapse(2)
+void draw_triangle(Canvas canvas, v3i a, v3i b, v3i c, rgba color, uint8* zbuffer) {
+  int xmin = std::min(std::min(a.x(), b.x()), c.x());
+  int xmax = std::max(std::max(a.x(), b.x()), c.x());
+  int ymin = std::min(std::min(a.y(), b.y()), c.y());
+  int ymax = std::max(std::max(a.y(), b.y()), c.y());
+
+  // Ensure that we only check values on the screen
+  xmin = std::clamp(xmin, 0, (int)canvas.width - 1);
+  xmax = std::clamp(xmax, 0, (int)canvas.width - 1);
+  ymin = std::clamp(ymin, 0, (int)canvas.height - 1);
+  ymax = std::clamp(ymax, 0, (int)canvas.height - 1);
+
+  int triangle_area = signed_triangle_area({a.x(), a.y()}, {b.x(), b.y()}, {c.x(), c.y()});
+
+  // Back face culling
+  if (triangle_area < 1) return;
+
+  // #pragma omp parallel for
   for (int x = xmin; x <= xmax; x++) {
     for (int y = ymin; y <= ymax; y++) {
-      float alpha = signed_triangle_area({x, y}, p1, p2) / triangle_area;
-      float beta = signed_triangle_area({x, y}, p2, p0) / triangle_area;
-      float gamma = signed_triangle_area({x, y}, p0, p1) / triangle_area;
-      if (alpha >= 0 && beta >= 0 && gamma >= 0) {
-          set_pixel(c, x, y, color);
-      }
+
+      // Check if point in triangle
+      float64 alpha = signed_triangle_area({x, y}, {b.x(), b.y()}, {c.x(), c.y()}) / triangle_area;
+      float64 beta  = signed_triangle_area({x, y}, {c.x(), c.y()}, {a.x(), a.y()}) / triangle_area;
+      float64 gamma = signed_triangle_area({x, y}, {a.x(), a.y()}, {b.x(), b.y()}) / triangle_area;
+      if (alpha < 0 || beta < 0 || gamma < 0) continue;
+
+      // Check if z position occuluded
+      uint8 z = (alpha * a.z() + beta * b.z() + gamma * c.z());
+      // debug("z: %d, zbuf: %d", z, canvas.depths[x + (canvas.height - y - 1) * canvas.width]);
+      if (z < zbuffer[x + (canvas.height - y - 1) * canvas.width]) continue;
+      zbuffer[x + (canvas.height - y - 1) * canvas.width] = z;
+
+      // Draw point in triangle
+      uint8 red = (alpha * 255);
+      uint8 green = (beta * 255);
+      uint8 blue = (gamma * 255);
+      set_pixel(canvas, x, y, {red, green, blue, 255});
     }
   }
 }
 
-void draw_triangle(Canvas c, v2i p0, v2i p1, v2i p2, rgba color) {
-  int triangle_area = signed_triangle_area(p0, p1, p2);
-  if (triangle_area < 1) return;
-  draw_triangle_scanline(c, p0.x(), p0.y(), p1.x(), p1.y(), p2.x(), p2.y(),
-                         color);
-  // draw_triangle_area(c, p0, p1, p2, color);
-}
+v3i to_screen(Canvas canvas, v3f v) {
+  float64 fov_degrees = 60;
+  float64 fov = fov_degrees * RAD_PER_DEGREE;
 
-v2i to_screen(Canvas c, v3f v) {
-  float fov_degrees = 60;
-  float fov = fov_degrees * RAD_PER_DEGREE;
+  float64 screen_height = std::tan(fov / 2) * 2;
+  int px_per_unit = canvas.height / screen_height;
 
-  float screen_height = std::tan(fov/2) * 2;
-  int px_per_unit = c.height / screen_height;
+  // v2f proj_vertex = {v.x() / v.z(), v.y() / v.z()};
+  v2f proj_vertex = {v.x(), v.y()};
 
-  v2f proj_vertex = {v.x() / v.z(), v.y() / v.z()};
-
-  int x = (c.width / 2) + (int)(proj_vertex.x() * px_per_unit);
-  int y = (c.height / 2) + (int)(proj_vertex.y() * px_per_unit);
-  return v2i{x, y};
+  int x = (canvas.width / 2) + (int)(proj_vertex.x() * px_per_unit);
+  int y = (canvas.height / 2) + (int)(proj_vertex.y() * px_per_unit);
+  int z = (255.0 / 2) * ((v.z() + 1));
+  return v3i{x, y, z};
 }
 
 v3f apply_transform(v3f v, Transform t) {
@@ -151,8 +169,8 @@ v3f apply_transform(v3f v, Transform t) {
   v *= t.scale;
 
   // Rotate
-  float sintheta = sin(t.rot.y());
-  float costheta = cos(t.rot.y());
+  float64 sintheta = sin(t.rot.y());
+  float64 costheta = cos(t.rot.y());
   v.x() = v.x() * costheta - v.z() * sintheta;
   v.y() = v.y();
   v.z() = v.x() * sintheta + v.z() * costheta;
@@ -163,14 +181,13 @@ v3f apply_transform(v3f v, Transform t) {
   return v;
 }
 
-void render_model(Canvas c, Model m, Transform t) {
+void render_model(Canvas canvas, Model m, Transform t) {
+  uint8 zbuffer[canvas.width * canvas.height] = {0};
   for (usize f = 0; f < m.n_faces; f++) {
     v3i face = m.faces[f];
-    v2i p0 = to_screen(c, apply_transform(m.vertices[face[0]], t));
-    v2i p1 = to_screen(c, apply_transform(m.vertices[face[1]], t));
-    v2i p2 = to_screen(c, apply_transform(m.vertices[face[2]], t));
-    srand(f % 100);
-    rgba color = {(uint8)rand(), (uint8)rand(), (uint8)rand(), 255};
-    draw_triangle(c, p0, p1, p2, color);
+    v3i a = to_screen(canvas, apply_transform(m.vertices[face[0]], t));
+    v3i b = to_screen(canvas, apply_transform(m.vertices[face[1]], t));
+    v3i c = to_screen(canvas, apply_transform(m.vertices[face[2]], t));
+    draw_triangle(canvas, a, b, c, {}, zbuffer);
   }
 }
