@@ -24,13 +24,6 @@
     fprintf(stdout, "\n%s", KNRM);                                             \
   } while (0)
 
-#define log(f, ...)                                                            \
-  do {                                                                         \
-    fprintf(stdout, "%s", KMAG);                                               \
-    fprintf(stdout, f, ##__VA_ARGS__);                                         \
-    fprintf(stdout, "\n%s", KNRM);                                             \
-  } while (0)
-
 #define info(f, ...)                                                            \
   do {                                                                         \
     fprintf(stdout, "%s", KGRN);                                               \

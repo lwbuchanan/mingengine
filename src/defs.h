@@ -31,4 +31,7 @@ typedef size_t usize;
 typedef float float32;
 typedef double float64;
 
+constexpr float64 PI = 3.141592653589793;
+constexpr float64 RAD_PER_DEGREE = PI / 180;
+
 #endif

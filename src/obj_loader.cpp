@@ -17,12 +17,12 @@ void parse_obj_line(char *line, Model *m) {
     switch (symbol[1]) {
     case '\0': { // Vertex
       token = strtok_r(NULL, " \t", &saveptr);
-      float f1 = strtof(token, NULL);
+      float64 f1 = strtod(token, NULL);
       token = strtok_r(NULL, " \t", &saveptr);
-      float f2 = strtof(token, NULL);
+      float64 f2 = strtod(token, NULL);
       token = strtok_r(NULL, " \t", &saveptr);
-      float f3 = strtof(token, NULL);
-      m->vertices[m->n_vertices++] = v3f{f1, f2, f3};
+      float64 f3 = strtod(token, NULL);
+      m->vertices[m->n_vertices++] = v4f{f1, f2, f3, 1};
     } break;
     case 't': { // Vertex texture
     } break;
@@ -33,7 +33,7 @@ void parse_obj_line(char *line, Model *m) {
 
   case 'f': { // Face
     int n_verts = 0;
-    int v1, v2, v3;
+    int v1 = 0, v2 = 0, v3 = 0;
     while ((token = strtok_r(NULL, " \t", &saveptr))) {
       token2 = strtok_r(token, "/", &saveptr2);
       n_verts++;
@@ -59,7 +59,7 @@ void parse_obj_line(char *line, Model *m) {
   }
 }
 
-Model load_model(const char *obj_file, v3f *vertex_buf, usize max_vertices,
+Model load_model(const char *obj_file, v4f *vertex_buf, usize max_vertices,
                  v3i *face_buf, usize max_faces) {
   Model model = {
       vertex_buf,
